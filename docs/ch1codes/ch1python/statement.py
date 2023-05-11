@@ -3,6 +3,21 @@ import math
 
 
 def statement(invoice, plays):
+    def amount_for(performance) -> float:
+
+        if play['type'] == 'tragedy':
+            this_amount = 40000
+            if performance['audience'] > 30:
+                this_amount += 1000 * (performance['audience'] - 30)
+        elif play['type'] == 'comedy':
+            this_amount = 30000
+            if performance['audience'] > 20:
+                this_amount += 10000 + 500 * (performance['audience'] - 20)
+            this_amount += 300 * performance['audience']
+        else:
+            raise RuntimeError(f'unknown type: {play["type"]}')
+        return this_amount
+
     total_amount = 0
     volume_credits = 0
     result = f'Statement for {invoice["customer"]}\n'
@@ -10,18 +25,7 @@ def statement(invoice, plays):
     for perf in invoice['performances']:
         play = plays[perf['playID']]
 
-        if play['type'] == 'tragedy':
-            this_amount = 40000
-            if perf['audience'] > 30:
-                this_amount += 1000 * (perf['audience'] - 30)
-        elif play['type'] == 'comedy':
-            this_amount = 30000
-            if perf['audience'] > 20:
-                this_amount += 10000 + 500 * (perf['audience'] - 20)
-            this_amount += 300 * perf['audience']
-        else:
-            raise RuntimeError(f'unknown type: {play["type"]}')
-
+        this_amount = amount_for(perf)
         # add volume credits
         volume_credits += max(perf['audience'] - 30, 0)
         # add extra credit for every ten comedy attendees
