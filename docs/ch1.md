@@ -56,49 +56,43 @@
 
 下面这个简单的函数用于打印账单详情。
 
-```js
-function statement (invoice, plays) {
-  let totalAmount = 0;
-  let volumeCredits = 0;
-  let result = `Statement for ${invoice.customer}\n`;
-  const format = new Intl.NumberFormat("en-US",
-                        { style: "currency", currency: "USD",
-                          minimumFractionDigits: 2 }).format;
-  for (let perf of invoice.performances) {
-    const play = plays[perf.playID];
-    let thisAmount = 0;
+```python
+import locale
+import math
 
-    switch (play.type) {
-    case "tragedy":
-      thisAmount = 40000;
-      if (perf.audience &gt; 30) {
-        thisAmount += 1000 * (perf.audience - 30);
-      }
-      break;
-    case "comedy":
-      thisAmount = 30000;
-      if (perf.audience &gt; 20) {
-        thisAmount += 10000 + 500 * (perf.audience - 20);
-      }
-      thisAmount += 300 * perf.audience;
-      break;
-    default:
-        throw new Error(`unknown type: ${play.type}`);
-    }
+def statement(invoice, plays):
+    total_amount = 0
+    volume_credits = 0
+    result = f'Statement for {invoice["customer"]}\n'
+    locale.setlocale(locale.LC_ALL, 'en_US')
+    for perf in invoice['performances']:
+        play = plays[perf['playID']]
 
-    // add volume credits
-    volumeCredits += Math.max(perf.audience - 30, 0);
-    // add extra credit for every ten comedy attendees
-    if ("comedy" === play.type) volumeCredits += Math.floor(perf.audience / 5);
+        if play['type'] == 'tragedy':
+            this_amount = 40000
+            if perf['audience'] > 30:
+                this_amount += 1000 * (perf['audience'] - 30)
+        elif play['type'] == 'comedy':
+            this_amount = 30000
+            if perf['audience'] > 20:
+                this_amount += 10000 + 500 * (perf['audience'] - 20)
+            this_amount += 300 * perf['audience']
+        else:
+            raise RuntimeError(f'unknown type: {play["type"]}')
 
-    // print line for this order
-    result += ` ${play.name}: ${format(thisAmount/100)} (${perf.audience} seats)\n`;
-    totalAmount += thisAmount;
-  }
-  result += `Amount owed is ${format(totalAmount/100)}\n`;
-  result += `You earned ${volumeCredits} credits\n`;
-  return result;
-}
+        # add volume credits
+        volume_credits += max(perf['audience'] - 30, 0)
+        # add extra credit for every ten comedy attendees
+        if "comedy" == play['type']:
+            volume_credits += math.floor(perf['audience'] / 5)
+
+        # print line for this order
+        result += f'{play["name"]}: {locale.currency(this_amount / 100)} ({perf["audience"]} seats)\n'
+        total_amount += this_amount
+
+    result += f'Amount owed is {locale.currency(total_amount / 100)}\n'
+    result += f'You earned {volume_credits} credits\n'
+    return result
 ```
 
 用上面的数据文件（invoices.json 和 plays.json）作为测试输入，运行这段代码，会得到如下输出：
@@ -150,49 +144,43 @@ statement 函数的返回值是一个字符串，我做的就是创建几张新�
 
 每当看到这样长长的函数，我便下意识地想从整个函数中分离出不同的关注点。第一个引起我注意的就是中间那段 switch 语句。
 
-```js
-function statement (invoice, plays) {
-  let totalAmount = 0;
-  let volumeCredits = 0;
-  let result = `Statement for ${invoice.customer}\n`;
-  const format = new Intl.NumberFormat("en-US",
-                        { style: "currency", currency: "USD",
-                          minimumFractionDigits: 2 }).format;
-  for (let perf of invoice.performances) {
-    const play = plays[perf.playID];
-    let thisAmount = 0;
+```python
+import locale
+import math
 
-    switch (play.type) {
-    case "tragedy":
-      thisAmount = 40000;
-      if (perf.audience &gt; 30) {
-        thisAmount += 1000 * (perf.audience - 30);
-      }
-      break;
-    case "comedy":
-      thisAmount = 30000;
-      if (perf.audience &gt; 20) {
-        thisAmount += 10000 + 500 * (perf.audience - 20);
-      }
-      thisAmount += 300 * perf.audience;
-      break;
-    default:
-        throw new Error(`unknown type: ${play.type}`);
-    }
+def statement(invoice, plays):
+    total_amount = 0
+    volume_credits = 0
+    result = f'Statement for {invoice["customer"]}\n'
+    locale.setlocale(locale.LC_ALL, 'en_US')
+    for perf in invoice['performances']:
+        play = plays[perf['playID']]
 
-    // add volume credits
-    volumeCredits += Math.max(perf.audience - 30, 0);
-    // add extra credit for every ten comedy attendees
-    if ("comedy" === play.type) volumeCredits += Math.floor(perf.audience / 5);
+        if play['type'] == 'tragedy':
+            this_amount = 40000
+            if perf['audience'] > 30:
+                this_amount += 1000 * (perf['audience'] - 30)
+        elif play['type'] == 'comedy':
+            this_amount = 30000
+            if perf['audience'] > 20:
+                this_amount += 10000 + 500 * (perf['audience'] - 20)
+            this_amount += 300 * perf['audience']
+        else:
+            raise RuntimeError(f'unknown type: {play["type"]}')
 
-    // print line for this order
-    result += ` ${play.name}: ${format(thisAmount/100)} (${perf.audience} seats)\n`;
-    totalAmount += thisAmount;
-  }
-  result += `Amount owed is ${format(totalAmount/100)}\n`;
-  result += `You earned ${volumeCredits} credits\n`;
-  return result;
-}
+        # add volume credits
+        volume_credits += max(perf['audience'] - 30, 0)
+        # add extra credit for every ten comedy attendees
+        if "comedy" == play['type']:
+            volume_credits += math.floor(perf['audience'] / 5)
+
+        # print line for this order
+        result += f'{play["name"]}: {locale.currency(this_amount / 100)} ({perf["audience"]} seats)\n'
+        total_amount += this_amount
+
+    result += f'Amount owed is {locale.currency(total_amount / 100)}\n'
+    result += f'You earned {volume_credits} credits\n'
+    return result
 ```
 
 看着这块代码，我就知道它在计算一场戏剧演出的费用。这是我的直觉。不过正如 Ward Cunningham 所说，这种理解只是我脑海中转瞬即逝的灵光。我需要梳理这些灵感，将它们从脑海中搬回到代码里去，以免忘记。这样当我回头看时，代码就能告诉我它在干什么，我不需要重新思考一遍。
@@ -203,28 +191,21 @@ function statement (invoice, plays) {
 
 #### function statement...
 
-```js
-function amountFor(perf, play) {
-  let thisAmount = 0;
-  switch (play.type) {
-  case "tragedy":
-    thisAmount = 40000;
-    if (perf.audience &gt; 30) {
-      thisAmount += 1000 * (perf.audience - 30);
-    }
-    break;
-  case "comedy":
-    thisAmount = 30000;
-    if (perf.audience &gt; 20) {
-      thisAmount += 10000 + 500 * (perf.audience - 20);
-    }
-    thisAmount += 300 * perf.audience;
-    break;
-  default:
-      throw new Error(`unknown type: ${play.type}`);
-  }
-  return thisAmount;
-}
+```python
+def amount_for(performance) -> float:
+
+    if play['type'] == 'tragedy':
+        this_amount = 40000
+        if performance['audience'] > 30:
+            this_amount += 1000 * (performance['audience'] - 30)
+    elif play['type'] == 'comedy':
+        this_amount = 30000
+        if performance['audience'] > 20:
+            this_amount += 10000 + 500 * (performance['audience'] - 20)
+        this_amount += 300 * performance['audience']
+    else:
+        raise RuntimeError(f'unknown type: {play["type"]}')
+    return this_amount
 ```
 
 当我在代码块上方使用了斜体（中文对应为楷体）标记的题头“ function xxx ”时，表明该代码块位于题头所在函数、文件或类的作用域内。通常该作用域内还有其他的代码，但由于不是讨论重点，因此把它们隐去不展示。
@@ -233,30 +214,47 @@ function amountFor(perf, play) {
 
 #### 顶层作用域...
 
-```js
-function statement (invoice, plays) {
-  let totalAmount = 0;
-  let volumeCredits = 0;
-  let result = `Statement for ${invoice.customer}\n`;
-  const format = new Intl.NumberFormat("en-US",
-                        { style: "currency", currency: "USD",
-                          minimumFractionDigits: 2 }).format;
-  for (let perf of invoice.performances) {
-    const play = plays[perf.playID];
-    let thisAmount = amountFor(perf, play);
+```python
 
-    // add volume credits
-    volumeCredits += Math.max(perf.audience - 30, 0);
-    // add extra credit for every ten comedy attendees
-    if ("comedy" === play.type) volumeCredits += Math.floor(perf.audience / 5);
+def statement(invoice, plays):
 
-    // print line for this order
-    result += ` ${play.name}: ${format(thisAmount/100)} (${perf.audience} seats)\n`;
-    totalAmount += thisAmount;
-  }
-  result += `Amount owed is ${format(totalAmount/100)}\n`;
-  result += `You earned ${volumeCredits} credits\n`;
-  return result;
+    def amount_for(performance) -> float:
+
+        if play['type'] == 'tragedy':
+            this_amount = 40000
+            if performance['audience'] > 30:
+                this_amount += 1000 * (performance['audience'] - 30)
+        elif play['type'] == 'comedy':
+            this_amount = 30000
+            if performance['audience'] > 20:
+                this_amount += 10000 + 500 * (performance['audience'] - 20)
+            this_amount += 300 * performance['audience']
+        else:
+            raise RuntimeError(f'unknown type: {play["type"]}')
+        return this_amount
+    
+    total_amount = 0
+    volume_credits = 0
+    result = f'Statement for {invoice["customer"]}\n'
+    locale.setlocale(locale.LC_ALL, 'en_US')
+    for perf in invoice['performances']:
+        play = plays[perf['playID']]
+
+        this_amount = amount_for(perf)
+        # add volume credits
+        volume_credits += max(perf['audience'] - 30, 0)
+        # add extra credit for every ten comedy attendees
+        if "comedy" == play['type']:
+            volume_credits += math.floor(perf['audience'] / 5)
+
+        # print line for this order
+        result += f'  {play["name"]}: {locale.currency(this_amount / 100)} ({perf["audience"]} seats)\n'
+        total_amount += this_amount
+
+    result += f'Amount owed is {locale.currency(total_amount / 100, grouping=True)}\n'
+    result += f'You earned {volume_credits} credits\n'
+    return result
+
 ```
 
 做完这个改动后，我会马上编译并执行一遍测试，看看有无破坏了其他东西。无论每次重构多么简单，养成重构后即运行测试的习惯非常重要。犯错误是很容易的——至少我知道我是很容易犯错的。做完一次修改就运行测试，这样在我真的犯了错时，只需要考虑一个很小的改动范围，这使得查错与修复问题易如反掌。这就是重构过程的精髓所在：小步修改，每次修改后就运行测试。如果我改动了太多东西，犯错时就可能陷入麻烦的调试，并为此耗费大把时间。小步修改，以及它带来的频繁反馈，正是防止混乱的关键。
