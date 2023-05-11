@@ -6,17 +6,17 @@ def statement(invoice, plays):
     def amount_for(performance) -> float:
 
         if play['type'] == 'tragedy':
-            this_amount = 40000
+            res = 40000
             if performance['audience'] > 30:
-                this_amount += 1000 * (performance['audience'] - 30)
+                res += 1000 * (performance['audience'] - 30)
         elif play['type'] == 'comedy':
-            this_amount = 30000
+            res = 30000
             if performance['audience'] > 20:
-                this_amount += 10000 + 500 * (performance['audience'] - 20)
-            this_amount += 300 * performance['audience']
+                res += 10000 + 500 * (performance['audience'] - 20)
+            res += 300 * performance['audience']
         else:
             raise RuntimeError(f'unknown type: {play["type"]}')
-        return this_amount
+        return res
 
     total_amount = 0
     volume_credits = 0
