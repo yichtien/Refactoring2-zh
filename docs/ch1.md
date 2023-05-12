@@ -277,56 +277,42 @@ def statement(invoice, plays):
 
 #### function statement...
 
-```js
-function amountFor(perf, play) {
-  let result = 0;
-  switch (play.type) {
-  case "tragedy":
-    result = 40000;
-    if (perf.audience &gt; 30) {
-      result += 1000 * (perf.audience - 30);
-    }
-    break;
-  case "comedy":
-    result = 30000;
-    if (perf.audience &gt; 20) {
-      result += 10000 + 500 * (perf.audience - 20);
-    }
-    result += 300 * perf.audience;
-    break;
-  default:
-      throw new Error(`unknown type: ${play.type}`);
-  }
-  return result;
-}
+```python
+    def amount_for(performance) -> float:
+
+        if play['type'] == 'tragedy':
+            res = 40000
+            if performance['audience'] > 30:
+                res += 1000 * (performance['audience'] - 30)
+        elif play['type'] == 'comedy':
+            res = 30000
+            if performance['audience'] > 20:
+                res += 10000 + 500 * (performance['audience'] - 20)
+            res += 300 * performance['audience']
+        else:
+            raise RuntimeError(f'unknown type: {play["type"]}')
+        return res
 ```
 
-这是我个人的编码风格：永远将函数的返回值命名为“result”，这样我一眼就能知道它的作用。然后我再次编译、测试、提交代码。接着，我前往下一个目标——函数参数。
+这是我个人的编码风格：永远将函数的返回值命名为“res”，这样我一眼就能知道它的作用。然后我再次编译、测试、提交代码。接着，我前往下一个目标——函数参数。
 
 #### function statement...
 
-```js
-function amountFor(aPerformance, play) {
-  let result = 0;
-  switch (play.type) {
-  case "tragedy":
-    result = 40000;
-    if (aPerformance.audience &gt; 30) {
-      result += 1000 * (aPerformance.audience - 30);
-    }
-    break;
-  case "comedy":
-    result = 30000;
-    if (aPerformance.audience &gt; 20) {
-      result += 10000 + 500 * (aPerformance.audience - 20);
-    }
-    result += 300 * aPerformance.audience;
-    break;
-  default:
-      throw new Error(`unknown type: ${play.type}`);
-  }
-  return result;
-}
+```python
+    def amount_for(performance, play) -> float:
+
+        if play['type'] == 'tragedy':
+            res = 40000
+            if performance['audience'] > 30:
+                res += 1000 * (performance['audience'] - 30)
+        elif play['type'] == 'comedy':
+            res = 30000
+            if performance['audience'] > 20:
+                res += 10000 + 500 * (performance['audience'] - 20)
+            res += 300 * performance['audience']
+        else:
+            raise RuntimeError(f'unknown type: {play["type"]}')
+        return res
 ```
 
 这是我的另一个编码风格。使用一门动态类型语言（如 JavaScript）时，跟踪变量的类型很有意义。因此，我为参数取名时都默认带上其类型名。一般我会使用不定冠词修饰它，除非命名中另有解释其角色的相关信息。这个习惯是从 Kent Beck 那里学的[Beck SBPP]，到现在我还一直觉得很有用。
@@ -347,151 +333,202 @@ function amountFor(aPerformance, play) {
 
 #### function statement...
 
-```js
-function playFor(aPerformance) {
-  return plays[aPerformance.playID];
-}
+```python
+def play_for(performance):
+  return plays[performance['playID']]
+
 ```
 
 #### 顶层作用域...
 
-```js
-function statement (invoice, plays) {
-  let totalAmount = 0;
-  let volumeCredits = 0;
-  let result = `Statement for ${invoice.customer}\n`;
-  const format = new Intl.NumberFormat("en-US",
-                        { style: "currency", currency: "USD",
-                          minimumFractionDigits: 2 }).format;
-  for (let perf of invoice.performances) {
-    const play = playFor(perf);
-    let thisAmount = amountFor(perf, play);
+```python
+import locale
+import math
 
-    // add volume credits
-    volumeCredits += Math.max(perf.audience - 30, 0);
-    // add extra credit for every ten comedy attendees
-    if ("comedy" === play.type) volumeCredits += Math.floor(perf.audience / 5);
 
-    // print line for this order
-    result += ` ${play.name}: ${format(thisAmount/100)} (${perf.audience} seats)\n`;
-    totalAmount += thisAmount;
-  }
-  result += `Amount owed is ${format(totalAmount/100)}\n`;
-  result += `You earned ${volumeCredits} credits\n`;
-  return result;
+def statement(invoice, plays):
+    
+    def amount_for(performance, play) -> float:
+
+        if play['type'] == 'tragedy':
+            res = 40000
+            if performance['audience'] > 30:
+                res += 1000 * (performance['audience'] - 30)
+        elif play['type'] == 'comedy':
+            res = 30000
+            if performance['audience'] > 20:
+                res += 10000 + 500 * (performance['audience'] - 20)
+            res += 300 * performance['audience']
+        else:
+            raise RuntimeError(f'unknown type: {play["type"]}')
+        return res
+
+    def play_for(performance):
+        """用以移除变量 `play` """
+        return plays[performance['playID']]
+
+    total_amount = 0
+    volume_credits = 0
+    result = f'Statement for {invoice["customer"]}\n'
+    locale.setlocale(locale.LC_ALL, 'en_US')
+    for perf in invoice['performances']:
+        play = play_for(perf)
+
+        this_amount = amount_for(perf, play)
+        # add volume credits
+        volume_credits += max(perf['audience'] - 30, 0)
+        # add extra credit for every ten comedy attendees
+        if "comedy" == play['type']:
+            volume_credits += math.floor(perf['audience'] / 5)
+
+        # print line for this order
+        result += f'  {play["name"]}: {locale.currency(this_amount / 100)} ({perf["audience"]} seats)\n'
+        total_amount += this_amount
+
+    result += f'Amount owed is {locale.currency(total_amount / 100, grouping=True)}\n'
+    result += f'You earned {volume_credits} credits\n'
+    return result
+
 ```
 
 编译、测试、提交，然后使用内联变量（123）手法内联 play 变量。
 
 #### 顶层作用域...
 
-```js
-function statement (invoice, plays) {
-  let totalAmount = 0;
-  let volumeCredits = 0;
-  let result = `Statement for ${invoice.customer}\n`;
-  const format = new Intl.NumberFormat("en-US",
-                        { style: "currency", currency: "USD",
-                          minimumFractionDigits: 2 }).format;
-  for (let perf of invoice.performances) {
-    const play = playFor(perf);
-    let thisAmount = amountFor(perf, playFor(perf));
+```python
+def statement(invoice, plays):
 
-    // add volume credits
-    volumeCredits += Math.max(perf.audience - 30, 0);
-    // add extra credit for every ten comedy attendees
-    if ("comedy" === playFor(perf).type) volumeCredits += Math.floor(perf.audience / 5);
+    def amount_for(performance) -> float:
 
-    // print line for this order
-    result += ` ${playFor(perf).name}: ${format(thisAmount/100)} (${perf.audience} seats)\n`;
-    totalAmount += thisAmount;
-  }
-  result += `Amount owed is ${format(totalAmount/100)}\n`;
-  result += `You earned ${volumeCredits} credits\n`;
-  return result;
+        if play_for(performance)['type'] == 'tragedy':
+            res = 40000
+            if performance['audience'] > 30:
+                res += 1000 * (performance['audience'] - 30)
+        elif play_for(performance)['type'] == 'comedy':
+            res = 30000
+            if performance['audience'] > 20:
+                res += 10000 + 500 * (performance['audience'] - 20)
+            res += 300 * performance['audience']
+        else:
+            raise RuntimeError(f'unknown type: {play_for(performance)["type"]}')
+        return res
+
+    def play_for(performance):
+        """用以移除变量 `play` """
+        return plays[performance['playID']]
+
+    total_amount = 0
+    volume_credits = 0
+    result = f'Statement for {invoice["customer"]}\n'
+    locale.setlocale(locale.LC_ALL, 'en_US')
+    for perf in invoice['performances']:
+        this_amount = amount_for(perf)
+        # add volume credits
+        volume_credits += max(perf['audience'] - 30, 0)
+        # add extra credit for every ten comedy attendees
+        if "comedy" == play_for(perf)['type']:
+            volume_credits += math.floor(perf['audience'] / 5)
+
+        # print line for this order
+        result += f'  {play_for(perf)["name"]}: {locale.currency(this_amount / 100)} ({perf["audience"]} seats)\n'
+        total_amount += this_amount
+
+    result += f'Amount owed is {locale.currency(total_amount / 100, grouping=True)}\n'
+    result += f'You earned {volume_credits} credits\n'
+    return result
+
 ```
 
 编译、测试、提交。完成变量内联后，我可以对 amountFor 函数应用改变函数声明（124），移除 play 参数。我会分两步走。首先在 amountFor 函数内部使用新提炼的函数。
 
 #### function statement...
 
-```js
-function amountFor(aPerformance, play) {
-  let result = 0;
-  switch (playFor(aPerformance).type) {
-  case "tragedy":
-    result = 40000;
-    if (aPerformance.audience &gt; 30) {
-      result += 1000 * (aPerformance.audience - 30);
-    }
-    break;
-  case "comedy":
-    result = 30000;
-    if (aPerformance.audience &gt; 20) {
-      result += 10000 + 500 * (aPerformance.audience - 20);
-    }
-    result += 300 * aPerformance.audience;
-    break;
-  default:
-      throw new Error(`unknown type: ${playFor(aPerformance).type}`);
-  }
-  return result;
-}
+```python
+
+    def amount_for(performance) -> float:
+
+        if play_for(performance)['type'] == 'tragedy':
+            res = 40000
+            if performance['audience'] > 30:
+                res += 1000 * (performance['audience'] - 30)
+        elif play_for(performance)['type'] == 'comedy':
+            res = 30000
+            if performance['audience'] > 20:
+                res += 10000 + 500 * (performance['audience'] - 20)
+            res += 300 * performance['audience']
+        else:
+            raise RuntimeError(f'unknown type: {play_for(performance)["type"]}')
+        return res
+
 ```
 
 编译、测试、提交，最后将参数删除。
 
 #### 顶层作用域...
 
-```js
-function statement (invoice, plays) {
-  let totalAmount = 0;
-  let volumeCredits = 0;
-  let result = `Statement for ${invoice.customer}\n`;
-  const format = new Intl.NumberFormat("en-US",
-                        { style: "currency", currency: "USD",
-                          minimumFractionDigits: 2 }).format;
-  for (let perf of invoice.performances) {
-    let thisAmount = amountFor(perf , playFor(perf) );
+```python
+def statement(invoice, plays):
 
-    // add volume credits
-    volumeCredits += Math.max(perf.audience - 30, 0);
-    // add extra credit for every ten comedy attendees
-    if ("comedy" === playFor(perf).type) volumeCredits += Math.floor(perf.audience / 5);
+    def amount_for(performance) -> float:
 
-    // print line for this order
-    result += ` ${playFor(perf).name}: ${format(thisAmount/100)} (${perf.audience} seats)\n`;
-    totalAmount += thisAmount;
-  }
-  result += `Amount owed is ${format(totalAmount/100)}\n`;
-  result += `You earned ${volumeCredits} credits\n`;
-  return result;
+        if play_for(performance)['type'] == 'tragedy':
+            res = 40000
+            if performance['audience'] > 30:
+                res += 1000 * (performance['audience'] - 30)
+        elif play_for(performance)['type'] == 'comedy':
+            res = 30000
+            if performance['audience'] > 20:
+                res += 10000 + 500 * (performance['audience'] - 20)
+            res += 300 * performance['audience']
+        else:
+            raise RuntimeError(f'unknown type: {play_for(performance)["type"]}')
+        return res
+
+    def play_for(performance):
+        """用以移除变量 `play` """
+        return plays[performance['playID']]
+
+    total_amount = 0
+    volume_credits = 0
+    result = f'Statement for {invoice["customer"]}\n'
+    locale.setlocale(locale.LC_ALL, 'en_US')
+    for perf in invoice['performances']:
+        this_amount = amount_for(perf)
+        # add volume credits
+        volume_credits += max(perf['audience'] - 30, 0)
+        # add extra credit for every ten comedy attendees
+        if "comedy" == play_for(perf)['type']:
+            volume_credits += math.floor(perf['audience'] / 5)
+
+        # print line for this order
+        result += f'  {play_for(perf)["name"]}: {locale.currency(this_amount / 100)} ({perf["audience"]} seats)\n'
+        total_amount += this_amount
+
+    result += f'Amount owed is {locale.currency(total_amount / 100, grouping=True)}\n'
+    result += f'You earned {volume_credits} credits\n'
+    return result
+
 ```
 
 #### function statement...
 
-```js
-function amountFor(aPerformance , play ) {
-  let result = 0;
-  switch (playFor(aPerformance).type) {
-  case "tragedy":
-    result = 40000;
-    if (aPerformance.audience &gt; 30) {
-      result += 1000 * (aPerformance.audience - 30);
-    }
-    break;
-  case "comedy":
-    result = 30000;
-    if (aPerformance.audience &gt; 20) {
-      result += 10000 + 500 * (aPerformance.audience - 20);
-    }
-    result += 300 * aPerformance.audience;
-    break;
-  default:
-      throw new Error(`unknown type: ${playFor(aPerformance).type}`);
-  }
-  return result;
-}
+```python
+
+    def amount_for(performance) -> float:
+
+        if play_for(performance)['type'] == 'tragedy':
+            res = 40000
+            if performance['audience'] > 30:
+                res += 1000 * (performance['audience'] - 30)
+        elif play_for(performance)['type'] == 'comedy':
+            res = 30000
+            if performance['audience'] > 20:
+                res += 10000 + 500 * (performance['audience'] - 20)
+            res += 300 * performance['audience']
+        else:
+            raise RuntimeError(f'unknown type: {play_for(performance)["type"]}')
+        return res
+
 ```
 
 然后再一次编译、测试、提交。
@@ -504,28 +541,49 @@ function amountFor(aPerformance , play ) {
 
 #### 顶层作用域...
 
-```js
-function statement (invoice, plays) {
-  let totalAmount = 0;
-  let volumeCredits = 0;
-  let result = `Statement for ${invoice.customer}\n`;
-  const format = new Intl.NumberFormat("en-US",
-                        { style: "currency", currency: "USD",
-                          minimumFractionDigits: 2 }).format;
-    for (let perf of invoice.performances) {
+```python
 
-    // add volume credits
-    volumeCredits += Math.max(perf.audience - 30, 0);
-    // add extra credit for every ten comedy attendees
-    if ("comedy" === playFor(perf).type) volumeCredits += Math.floor(perf.audience / 5);
+def statement(invoice, plays):
 
-    // print line for this order
-    result += ` ${playFor(perf).name}: ${format(amountFor(perf)/100)} (${perf.audience} seats)\n`;
-    totalAmount += amountFor(perf);
-  }
-  result += `Amount owed is ${format(totalAmount/100)}\n`;
-  result += `You earned ${volumeCredits} credits\n`;
-  return result;
+    def amount_for(performance) -> float:
+
+        if play_for(performance)['type'] == 'tragedy':
+            res = 40000
+            if performance['audience'] > 30:
+                res += 1000 * (performance['audience'] - 30)
+        elif play_for(performance)['type'] == 'comedy':
+            res = 30000
+            if performance['audience'] > 20:
+                res += 10000 + 500 * (performance['audience'] - 20)
+            res += 300 * performance['audience']
+        else:
+            raise RuntimeError(f'unknown type: {play_for(performance)["type"]}')
+        return res
+
+    def play_for(performance):
+        """用以移除变量 `play` """
+        return plays[performance['playID']]
+
+    total_amount = 0
+    volume_credits = 0
+    result = f'Statement for {invoice["customer"]}\n'
+    locale.setlocale(locale.LC_ALL, 'en_US')
+    for perf in invoice['performances']:
+
+        # add volume credits
+        volume_credits += max(perf['audience'] - 30, 0)
+        # add extra credit for every ten comedy attendees
+        if "comedy" == play_for(perf)['type']:
+            volume_credits += math.floor(perf['audience'] / 5)
+
+        # print line for this order
+        result += f'  {play_for(perf)["name"]}: {locale.currency(amount_for(perf) / 100)} ({perf["audience"]} seats)\n'
+        total_amount += amount_for(perf)
+
+    result += f'Amount owed is {locale.currency(total_amount / 100, grouping=True)}\n'
+    result += f'You earned {volume_credits} credits\n'
+    return result
+
 ```
 
 提炼计算观众量积分的逻辑
@@ -534,28 +592,48 @@ function statement (invoice, plays) {
 
 #### 顶层作用域...
 
-```js
-function statement (invoice, plays) {
-  let totalAmount = 0;
-  let volumeCredits = 0;
-  let result = `Statement for ${invoice.customer}\n`;
-  const format = new Intl.NumberFormat("en-US",
-                        { style: "currency", currency: "USD",
-                          minimumFractionDigits: 2 }).format;
-  for (let perf of invoice.performances) {
+```python
+def statement(invoice, plays):
 
-    // add volume credits
-    volumeCredits += Math.max(perf.audience - 30, 0);
-    // add extra credit for every ten comedy attendees
-    if ("comedy" === playFor(perf).type) volumeCredits += Math.floor(perf.audience / 5);
+    def amount_for(performance) -> float:
 
-    // print line for this order
-    result += ` ${playFor(perf).name}: ${format(amountFor(perf)/100)} (${perf.audience} seats)\n`;
-    totalAmount += amountFor(perf);
-  }
-  result += `Amount owed is ${format(totalAmount/100)}\n`;
-  result += `You earned ${volumeCredits} credits\n`;
-  return result;
+        if play_for(performance)['type'] == 'tragedy':
+            res = 40000
+            if performance['audience'] > 30:
+                res += 1000 * (performance['audience'] - 30)
+        elif play_for(performance)['type'] == 'comedy':
+            res = 30000
+            if performance['audience'] > 20:
+                res += 10000 + 500 * (performance['audience'] - 20)
+            res += 300 * performance['audience']
+        else:
+            raise RuntimeError(f'unknown type: {play_for(performance)["type"]}')
+        return res
+
+    def play_for(performance):
+        """用以移除变量 `play` """
+        return plays[performance['playID']]
+
+    total_amount = 0
+    volume_credits = 0
+    result = f'Statement for {invoice["customer"]}\n'
+    locale.setlocale(locale.LC_ALL, 'en_US')
+    for perf in invoice['performances']:
+
+        # add volume credits
+        volume_credits += max(perf['audience'] - 30, 0)
+        # add extra credit for every ten comedy attendees
+        if "comedy" == play_for(perf)['type']:
+            volume_credits += math.floor(perf['audience'] / 5)
+
+        # print line for this order
+        result += f'  {play_for(perf)["name"]}: {locale.currency(amount_for(perf) / 100)} ({perf["audience"]} seats)\n'
+        total_amount += amount_for(perf)
+
+    result += f'Amount owed is {locale.currency(total_amount / 100, grouping=True)}\n'
+    result += f'You earned {volume_credits} credits\n'
+    return result
+
 ```
 
 这会儿我们就看到了移除 play 变量的好处，移除了一个局部作用域的变量，提炼观众量积分的计算逻辑又更简单一些。
@@ -564,36 +642,65 @@ function statement (invoice, plays) {
 
 #### function statement...
 
-```js
-function volumeCreditsFor(perf) {
-  let volumeCredits = 0;
-  volumeCredits += Math.max(perf.audience - 30, 0);
-  if ("comedy" === playFor(perf).type)
-    volumeCredits += Math.floor(perf.audience / 5);
-  return volumeCredits;
-}
+```python
+def volume_credits_for(perf):
+    # add volume credits
+    volume_credits = 0
+    volume_credits += max(perf['audience'] - 30, 0)
+    # add extra credit for every ten comedy attendees
+    if "comedy" == play_for(perf)['type']:
+        volume_credits += math.floor(perf['audience'] / 5)
+    return volume_credits
 ```
 
 #### 顶层作用域...
 
-```js
-function statement (invoice, plays) {
-  let totalAmount = 0;
-  let volumeCredits = 0;
-  let result = `Statement for ${invoice.customer}\n`;
-  const format = new Intl.NumberFormat("en-US",
-                        { style: "currency", currency: "USD",
-                          minimumFractionDigits: 2 }).format;
-  for (let perf of invoice.performances) {
-    volumeCredits += volumeCreditsFor(perf);
+```python
+def statement(invoice, plays):
 
-    // print line for this order
-    result += ` ${playFor(perf).name}: ${format(amountFor(perf)/100)} (${perf.audience} seats)\n`;
-    totalAmount += amountFor(perf);
-  }
-  result += `Amount owed is ${format(totalAmount/100)}\n`;
-  result += `You earned ${volumeCredits} credits\n`;
-  return result;
+    def amount_for(performance) -> float:
+
+        if play_for(performance)['type'] == 'tragedy':
+            res = 40000
+            if performance['audience'] > 30:
+                res += 1000 * (performance['audience'] - 30)
+        elif play_for(performance)['type'] == 'comedy':
+            res = 30000
+            if performance['audience'] > 20:
+                res += 10000 + 500 * (performance['audience'] - 20)
+            res += 300 * performance['audience']
+        else:
+            raise RuntimeError(f'unknown type: {play_for(performance)["type"]}')
+        return res
+
+    def play_for(performance):
+        """用以移除变量 `play` """
+        return plays[performance['playID']]
+
+    def volume_credits_for(perf):
+        # add volume credits
+        res: int = 0
+        res += max(perf['audience'] - 30, 0)
+        # add extra credit for every ten comedy attendees
+        if "comedy" == play_for(perf)['type']:
+            res += math.floor(perf['audience'] / 5)
+        return res
+
+    total_amount = 0
+    volume_credits = 0
+    result = f'Statement for {invoice["customer"]}\n'
+    locale.setlocale(locale.LC_ALL, 'en_US')
+    for perf in invoice['performances']:
+        volume_credits += volume_credits_for(perf)
+        
+        # print line for this order
+        result += f'  {play_for(perf)["name"]}: {locale.currency(amount_for(perf) / 100)} ({perf["audience"]} seats)\n'
+        total_amount += amount_for(perf)
+
+    result += f'Amount owed is {locale.currency(total_amount / 100, grouping=True)}\n'
+    result += f'You earned {volume_credits} credits\n'
+    return result
+
 ```
 
 我还顺便删除了多余（并且会引起误解）的注释。
@@ -602,14 +709,17 @@ function statement (invoice, plays) {
 
 #### function statement...
 
-```js
-function volumeCreditsFor(aPerformance) {
-  let result = 0;
-  result += Math.max(aPerformance.audience - 30, 0);
-  if ("comedy" === playFor(aPerformance).type)
-    result += Math.floor(aPerformance.audience / 5);
-  return result;
-}
+```python
+
+    def volume_credits_for(perf):
+        # add volume credits
+        res: int = 0
+        res += max(perf['audience'] - 30, 0)
+        # add extra credit for every ten comedy attendees
+        if "comedy" == play_for(perf)['type']:
+            res += math.floor(perf['audience'] / 5)
+        return res
+
 ```
 
 这里我只展示了一步到位的改名结果，不过实际操作时，我还是一次只将一个变量改名，并在每次改名后执行编译、测试、提交。
@@ -620,24 +730,25 @@ function volumeCreditsFor(aPerformance) {
 
 #### 顶层作用域...
 
-```js
-function statement (invoice, plays) {
-  let totalAmount = 0;
-  let volumeCredits = 0;
-  let result = `Statement for ${invoice.customer}\n`;
-  const format = new Intl.NumberFormat("en-US",
-                        { style: "currency", currency: "USD",
-                          minimumFractionDigits: 2 }).format;
-  for (let perf of invoice.performances) {
-    volumeCredits += volumeCreditsFor(perf);
+```python
 
-    // print line for this order
-    result += ` ${playFor(perf).name}: ${format(amountFor(perf)/100)} (${perf.audience} seats)\n`;
-    totalAmount += amountFor(perf);
-  }
-  result += `Amount owed is ${format(totalAmount/100)}\n`;
-  result += `You earned ${volumeCredits} credits\n`;
-  return result;
+def statement(invoice, plays):
+
+    total_amount = 0
+    volume_credits = 0
+    result = f'Statement for {invoice["customer"]}\n'
+    locale.setlocale(locale.LC_ALL, 'en_US')
+    fmt = locale.currency
+    for perf in invoice['performances']:
+        volume_credits += volume_credits_for(perf)
+        # print line for this order
+        result += f'  {play_for(perf)["name"]}: {fmt(amount_for(perf) / 100)} ({perf["audience"]} seats)\n'
+        total_amount += amount_for(perf)
+
+    result += f'Amount owed is {fmt(total_amount / 100)}\n'
+    result += f'You earned {volume_credits} credits\n'
+    return result
+
 ```
 
 正如我上面所指出的，临时变量往往会带来麻烦。它们只在对其进行处理的代码块中有用，因此临时变量实质上是鼓励你写长而复杂的函数。因此，下一步我要替换掉一些临时变量，而最简单的莫过于从 format 变量入手。这是典型的“将函数赋值给临时变量”的场景，我更愿意将其替换为一个明确声明的函数。
@@ -654,23 +765,34 @@ function format(aNumber) {
 }
 ```
 
+```python
+import locale
+
+
+def fmt(number):
+    locale.setlocale(locale.LC_ALL, 'en_US')
+    return locale.currency(number, grouping=True)
+```
+
 #### 顶层作用域...
 
-```js
-function statement (invoice, plays) {
-  let totalAmount = 0;
-  let volumeCredits = 0;
-  let result = `Statement for ${invoice.customer}\n`;
-  for (let perf of invoice.performances) {
-    volumeCredits += volumeCreditsFor(perf);
+```python
+def statement (invoice, plays):
+    total_amount = 0
+    volume_credits = 0
+    result = f'Statement for {invoice["customer"]}\n'
+    locale.setlocale(locale.LC_ALL, 'en_US')
+    fmt = locale.currency
+    for perf in invoice['performances']:
+        volume_credits += volume_credits_for(perf)
+        # print line for this order
+        result += f'  {play_for(perf)["name"]}: {fmt(amount_for(perf) / 100)} ({perf["audience"]} seats)\n'
+        total_amount += amount_for(perf)
 
-    // print line for this order
-    result += ` ${playFor(perf).name}: ${format(amountFor(perf)/100)} (${perf.audience} seats)\n`;
-    totalAmount += amountFor(perf);
-  }
-  result += `Amount owed is ${format(totalAmount/100)}\n`;
-  result += `You earned ${volumeCredits} credits\n`;
-  return result;
+    result += f'Amount owed is {fmt(total_amount / 100, grouping=True)}\n'
+    result += f'You earned {volume_credits} credits\n'
+    return result
+
 ```
 
 ::: tip
@@ -681,33 +803,34 @@ function statement (invoice, plays) {
 
 #### 顶层作用域...
 
-```js
-function statement (invoice, plays) {
-  let totalAmount = 0;
-  let volumeCredits = 0;
-  let result = `Statement for ${invoice.customer}\n`;
-  for (let perf of invoice.performances) {
-    volumeCredits += volumeCreditsFor(perf);
+```python
 
-    // print line for this order
-    result += ` ${playFor(perf).name}: ${usd(amountFor(perf))} (${perf.audience} seats)\n`;
-    totalAmount += amountFor(perf);
-  }
-  result += `Amount owed is ${usd(totalAmount)}\n`;
-  result += `You earned ${volumeCredits} credits\n`;
-  return result;
+def statement(invoice, plays):
+
+    total_amount = 0
+    volume_credits = 0
+    result = f'Statement for {invoice["customer"]}\n'
+
+    for perf in invoice['performances']:
+        volume_credits += volume_credits_for(perf)
+        # print line for this order
+        result += f'  {play_for(perf)["name"]}: {usd(amount_for(perf))} ({perf["audience"]} seats)\n'
+        total_amount += amount_for(perf)
+
+    result += f'Amount owed is {usd(total_amount)}\n'
+    result += f'You earned {volume_credits} credits\n'
+    return result
 ```
 
 #### function statement...
 
-```js
-function usd(aNumber) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 2,
-  }).format(aNumber / 100);
-}
+```python
+
+    def usd(number):
+        locale.setlocale(locale.LC_ALL, 'en_US')
+        #
+        return locale.currency(number / 100, grouping=True)
+
 ```
 
 好的命名十分重要，但往往并非唾手可得。只有恰如其分地命名，才能彰显出将大函数分解成小函数的价值。有了好的名称，我就不必通过阅读函数体来了解其行为。但要一次把名取好并不容易，因此我会使用当下能想到最好的那个。如果稍后想到更好的，我就会毫不犹豫地换掉它。通常你需要花几秒钟通读更多代码，才能发现最好的名称是什么。
@@ -720,100 +843,98 @@ function usd(aNumber) {
 
 #### 顶层作用域...
 
-```js
-function statement (invoice, plays) {
-  let totalAmount = 0;
-  let volumeCredits = 0;
-  let result = `Statement for ${invoice.customer}\n`;
+```python
 
-  for (let perf of invoice.performances) {
+def statement(invoice, plays):
 
-    // print line for this order
-    result += ` ${playFor(perf).name}: ${usd(amountFor(perf))} (${perf.audience} seats)\n`;
-    totalAmount += amountFor(perf);
-  }
-  for (let perf of invoice.performances) {
-    volumeCredits += volumeCreditsFor(perf);
-  }
+    total_amount = 0
+    volume_credits = 0
+    result = f'Statement for {invoice["customer"]}\n'
 
-result += `Amount owed is ${usd(totalAmount)}\n`;
-result += `You earned ${volumeCredits} credits\n`;
-return result;
+    for perf in invoice['performances']:
+        result += f'  {play_for(perf)["name"]}: {usd(amount_for(perf))} ({perf["audience"]} seats)\n'
+        total_amount += amount_for(perf)
+
+    for perf in invoice['performances']:
+        volume_credits += volume_credits_for(perf)
+
+    result += f'Amount owed is {usd(total_amount)}\n'
+    result += f'You earned {volume_credits} credits\n'
+    return result
+
 ```
 
 完成这一步，我就可以使用移动语句（223）手法将变量声明挪动到紧邻循环的位置。
 
 top level…
 
-```js
-function statement (invoice, plays) {
-  let totalAmount = 0;
-  let result = `Statement for ${invoice.customer}\n`;
-  for (let perf of invoice.performances) {
+```python
 
-    // print line for this order
-    result += ` ${playFor(perf).name}: ${usd(amountFor(perf))} (${perf.audience} seats)\n`;
-    totalAmount += amountFor(perf);
-  }
-  let volumeCredits = 0;
-  for (let perf of invoice.performances) {
-    volumeCredits += volumeCreditsFor(perf);
-  }
-  result += `Amount owed is ${usd(totalAmount)}\n`;
-  result += `You earned ${volumeCredits} credits\n`;
-  return result;
+def statement(invoice, plays):
+
+    result = f'Statement for {invoice["customer"]}\n'
+
+    total_amount = 0
+    for perf in invoice['performances']:
+        result += f'  {play_for(perf)["name"]}: {usd(amount_for(perf))} ({perf["audience"]} seats)\n'
+        total_amount += amount_for(perf)
+
+    volume_credits = 0
+    for perf in invoice['performances']:
+        volume_credits += volume_credits_for(perf)
+
+    result += f'Amount owed is {usd(total_amount)}\n'
+    result += f'You earned {volume_credits} credits\n'
+    return result
+
 ```
 
 把与更新 volumeCredits 变量相关的代码都集中到一起，有利于以查询取代临时变量（178）手法的施展。第一步同样是先对变量的计算过程应用提炼函数（106）手法。
 
 #### function statement...
 
-```js
-function totalVolumeCredits() {
-  let volumeCredits = 0;
-  for (let perf of invoice.performances) {
-    volumeCredits += volumeCreditsFor(perf);
-  }
-  return volumeCredits;
-}
+```python
+def total_volume_credits():
+    volume_credits = 0
+    for perf in invoice['performances']:
+        volume_credits += volume_credits_for(perf)
+    return volume_credits
 ```
 
 #### 顶层作用域...
 
-```js
-function statement (invoice, plays) {
-  let totalAmount = 0;
-  let result = `Statement for ${invoice.customer}\n`;
-  for (let perf of invoice.performances) {
+```python
 
-    // print line for this order
-    result += ` ${playFor(perf).name}: ${usd(amountFor(perf))} (${perf.audience} seats)\n`;
-    totalAmount += amountFor(perf);
-  }
-  let volumeCredits = totalVolumeCredits();
-  result += `Amount owed is ${usd(totalAmount)}\n`;
-  result += `You earned ${volumeCredits} credits\n`;
-  return result;
+def statement(invoice, plays):
+
+    result = f'Statement for {invoice["customer"]}\n'
+
+    total_amount = 0
+    for perf in invoice['performances']:
+        result += f'  {play_for(perf)["name"]}: {usd(amount_for(perf))} ({perf["audience"]} seats)\n'
+        total_amount += amount_for(perf)
+    volume_credits = total_volume_credits()
+    result += f'Amount owed is {usd(total_amount)}\n'
+    result += f'You earned {volume_credits} credits\n'
 ```
 
 完成函数提炼后，我再应用内联变量（123）手法内联 totalVolumeCredits 函数。
 
 #### 顶层作用域...
 
-```js
-function statement (invoice, plays) {
-  let totalAmount = 0;
-  let result = `Statement for ${invoice.customer}\n`;
-  for (let perf of invoice.performances) {
+```python
 
-    // print line for this order
-    result += ` ${playFor(perf).name}: ${usd(amountFor(perf))} (${perf.audience} seats)\n`;
-    totalAmount += amountFor(perf);
-  }
+def statement(invoice, plays):
+    
+    result = f'Statement for {invoice["customer"]}\n'
 
-  result += `Amount owed is ${usd(totalAmount)}\n`;
-  result += `You earned ${totalVolumeCredits()} credits\n`;
-  return result;
+    total_amount = 0
+    for perf in invoice['performances']:
+        result += f'  {play_for(perf)["name"]}: {usd(amount_for(perf))} ({perf["audience"]} seats)\n'
+        total_amount += amount_for(perf)
+    result += f'Amount owed is {usd(total_amount)}\n'
+    result += f'You earned {total_volume_credits()} credits\n'
+    return result
 ```
 
 重构至此，让我先暂停一下，谈谈刚刚完成的修改。首先，我知道有些读者会再次对此修改可能带来的性能问题感到担忧，我知道很多人本能地警惕重复的循环。但大多数时候，重复一次这样的循环对性能的影响都可忽略不计。如果你在重构前后进行计时，很可能甚至都注意不到运行速度的变化——通常也确实没什么变化。许多程序员对代码实际的运行路径都所知不足，甚至经验丰富的程序员有时也未能避免。在聪明的编译器、现代的缓存技术面前，我们很多直觉都是不准确的。软件的性能通常只与代码的一小部分相关，改变其他的部分往往对总体性能贡献甚微。
@@ -835,143 +956,143 @@ function statement (invoice, plays) {
 
 #### function statement...
 
-```js
-function appleSauce() {
-  let totalAmount = 0;
-  for (let perf of invoice.performances) {
-    totalAmount += amountFor(perf);
-  }
-  return totalAmount;
-}
+```python
+def apple_sauce():
+    total_amount = 0
+    for perf in invoice['performances']:
+        total_amount += amount_for(perf)
+    return total_amount
 ```
 
 #### 顶层作用域...
 
-```js
-function statement (invoice, plays) {
-  let result = `Statement for ${invoice.customer}\n`;
-  for (let perf of invoice.performances) {
-    result += ` ${playFor(perf).name}: ${usd(amountFor(perf))} (${perf.audience} seats)\n`;
-  }
-  let totalAmount = appleSauce();
+```python
 
-  result += `Amount owed is ${usd(totalAmount)}\n`;
-  result += `You earned ${totalVolumeCredits()} credits\n`;
-  return result;
+    def statement(invoice, plays):
+        result = f'Statement for {invoice["customer"]}\n'
+
+        for perf in invoice['performances']:
+            result += f'  {play_for(perf)["name"]}: {usd(amount_for(perf))} ({perf["audience"]} seats)\n'
+            
+        total_amount = apple_sauce()
+        result += f'Amount owed is {usd(total_amount)}\n'
+        result += f'You earned {total_volume_credits()} credits\n'
+        return result
+
 ```
 
 接着我将变量内联（编译、测试、提交），然后将函数名改回 totalAmount（编译、测试、提交）。
 
 #### 顶层作用域...
 
-```js
-function statement (invoice, plays) {
-  let result = `Statement for ${invoice.customer}\n`;
-  for (let perf of invoice.performances) {
-    result += ` ${playFor(perf).name}: ${usd(amountFor(perf))} (${perf.audience} seats)\n`;
-  }
-  result += `Amount owed is ${usd(totalAmount())}\n`;
-  result += `You earned ${totalVolumeCredits()} credits\n`;
-  return result;
+```python
+
+def statement(invoice, plays):
+
+    result = f'Statement for {invoice["customer"]}\n'
+
+    for perf in invoice['performances']:
+        result += f'  {play_for(perf)["name"]}: {usd(amount_for(perf))} ({perf["audience"]} seats)\n'
+        
+    result += f'Amount owed is {usd(total_amount())}\n'
+    result += f'You earned {total_volume_credits()} credits\n'
+    return result
+
 ```
 
 #### function statement...
 
-```js
-function totalAmount() {
-  let totalAmount = 0;
-  for (let perf of invoice.performances) {
-    totalAmount += amountFor(perf);
-  }
-  return totalAmount;
-}
+```python
+
+    def total_amount():
+        res = 0
+        for perf in invoice['performances']:
+            res += amount_for(perf)
+        return res
+    
 ```
 
 趁着给新提炼的函数改名的机会，我顺手一并修改了函数内部的变量名，以便保持我一贯的编码风格。
 
 #### function statement...
 
-```js
-function totalAmount() {
-  let result = 0;
-  for (let perf of invoice.performances) {
-    result += amountFor(perf);
-  }
-  return result;
-}
-function totalVolumeCredits() {
-  let result = 0;
-  for (let perf of invoice.performances) {
-    result += volumeCreditsFor(perf);
-  }
-  return result;
-}
+```python
+
+    def total_amount():
+        res = 0
+        for perf in invoice['performances']:
+            res += amount_for(perf)
+        return res
+    
+    def total_volume_credits():
+        res = 0
+        for perf in invoice['performances']:
+            res += volume_credits_for(perf)
+        return res
+
 ```
 
 ## 1.5 进展：大量嵌套函数
 
 重构至此，是时候停下来欣赏一下代码的全貌了。
 
-```js
-function statement (invoice, plays) {
-  let result = `Statement for ${invoice.customer}\n`;
-  for (let perf of invoice.performances) {
-    result += ` ${playFor(perf).name}: ${usd(amountFor(perf))} (${perf.audience} seats)\n`;
-  }
-  result += `Amount owed is ${usd(totalAmount())}\n`;
-  result += `You earned ${totalVolumeCredits()} credits\n`;
-  return result;
+```python
 
-  function totalAmount() {
-    let result = 0;
-    for (let perf of invoice.performances) {
-      result += amountFor(perf);
-    }
-    return result;
-  }
-  function totalVolumeCredits() {
-    let result = 0;
-    for (let perf of invoice.performances) {
-      result += volumeCreditsFor(perf);
-    }
-    return result;
-  }
-  function usd(aNumber) {
-    return new Intl.NumberFormat("en-US",
-                        { style: "currency", currency: "USD",
-                          minimumFractionDigits: 2 }).format(aNumber/100);
-  }
-  function volumeCreditsFor(aPerformance) {
-    let result = 0;
-    result += Math.max(aPerformance.audience - 30, 0);
-    if ("comedy" === playFor(aPerformance).type) result += Math.floor(aPerformance.audience / 5);
-    return result;
-  }
-  function playFor(aPerformance) {
-    return plays[aPerformance.playID];
-  }
-  function amountFor(aPerformance) {
-    let result = 0;
-    switch (playFor(aPerformance).type) {
-    case "tragedy":
-      result = 40000;
-      if (aPerformance.audience &gt; 30) {
-        result += 1000 * (aPerformance.audience - 30);
-      }
-      break;
-    case "comedy":
-      result = 30000;
-      if (aPerformance.audience &gt; 20) {
-        result += 10000 + 500 * (aPerformance.audience - 20);
-      }
-      result += 300 * aPerformance.audience;
-      break;
-    default:
-      throw new Error(`unknown type: ${playFor(aPerformance).type}`);
-    }
-    return result;
-  }
-}
+def statement(invoice, plays):
+    def amount_for(performance) -> float:
+
+        if play_for(performance)['type'] == 'tragedy':
+            res = 40000
+            if performance['audience'] > 30:
+                res += 1000 * (performance['audience'] - 30)
+        elif play_for(performance)['type'] == 'comedy':
+            res = 30000
+            if performance['audience'] > 20:
+                res += 10000 + 500 * (performance['audience'] - 20)
+            res += 300 * performance['audience']
+        else:
+            raise RuntimeError(f'unknown type: {play_for(performance)["type"]}')
+        return res
+
+    def play_for(performance):
+        """用以移除变量 `play` """
+        return plays[performance['playID']]
+
+    def volume_credits_for(perf):
+        # add volume credits
+        res: int = 0
+        res += max(perf['audience'] - 30, 0)
+        # add extra credit for every ten comedy attendees
+        if "comedy" == play_for(perf)['type']:
+            res += math.floor(perf['audience'] / 5)
+        return res
+
+    def usd(number):
+        locale.setlocale(locale.LC_ALL, 'en_US')
+        #
+        return locale.currency(number / 100, grouping=True)
+
+    def total_volume_credits():
+        res = 0
+        for perf in invoice['performances']:
+            res += volume_credits_for(perf)
+        return res
+
+    def total_amount():
+        res = 0
+        for perf in invoice['performances']:
+            res += amount_for(perf)
+        return res
+
+    result = f'Statement for {invoice["customer"]}\n'
+
+    for perf in invoice['performances']:
+        result += f'  {play_for(perf)["name"]}: {usd(amount_for(perf))} ({perf["audience"]} seats)\n'
+
+    result += f'Amount owed is {usd(total_amount())}\n'
+    result += f'You earned {total_volume_credits()} credits\n'
+    return result
+
 ```
 
 现在代码结构已经好多了。顶层的 statement 函数现在只剩 7 行代码，而且它处理的都是与打印详单相关的逻辑。与计算相关的逻辑从主函数中被移走，改由一组函数来支持。每个单独的计算过程和详单的整体结构，都因此变得更易理解了。
@@ -1006,106 +1127,143 @@ function totalAmount() {...}
   function amountFor(aPerformance) {...}
 ```
 
+```python
+
+def statement(invoice, plays):
+    return render_plain_text(invoice, plays)
+
+def render_plain_text(invoice, plays):
+    result = f'Statement for {invoice["customer"]}\n'
+    for perf in invoice['performances']:
+        result += f'  {play_for(perf)["name"]}: {usd(amount_for(perf))} ({perf["audience"]} seats)\n'
+
+    result += f'Amount owed is {usd(total_amount())}\n'
+    result += f'You earned {total_volume_credits()} credits\n'
+    return result
+
+def total_amount(): pass
+def total_volume_credits(): pass
+def usd(number): pass
+def volume_credits_for(performance): pass
+def play_for(performance): pass
+def amount_for(performance): pass
+
+```
+
 编译、测试、提交，接着创建一个对象，作为在两个阶段间传递的中转数据结构，然后将它作为第一个参数传递给 renderPlainText（然后编译、测试、提交）。
 
-```js
-function statement (invoice, plays) {
-  const statementData = {};
-  return renderPlainText(statementData, invoice, plays);
-}
+```python
 
-function renderPlainText(data, invoice, plays) {
-  let result = `Statement for ${invoice.customer}\n`;
-  for (let perf of invoice.performances) {
-    result += ` ${playFor(perf).name}: ${usd(amountFor(perf))} (${perf.audience} seats)\n`;
-  }
-  result += `Amount owed is ${usd(totalAmount())}\n`;
-  result += `You earned ${totalVolumeCredits()} credits\n`;
-  return result;
+def statement(invoice, plays):
+    statement_data = {}
+    return render_plain_text(statement_data, invoice, plays)
 
-function totalAmount() {...}
-  function totalVolumeCredits() {...}
-  function usd(aNumber) {...}
-  function volumeCreditsFor(aPerformance) {...}
-  function playFor(aPerformance) {...}
-  function amountFor(aPerformance) {...}
+
+def render_plain_text(data, invoice, plays):
+    result = f'Statement for {invoice["customer"]}\n'
+
+    for perf in invoice['performances']:
+        result += f'  {play_for(perf)["name"]}: {usd(amount_for(perf))} ({perf["audience"]} seats)\n'
+
+    result += f'Amount owed is {usd(total_amount())}\n'
+    result += f'You earned {total_volume_credits()} credits\n'
+    return result
 ```
 
 现在我要检查一下 renderPlainText 用到的其他参数。我希望将它们挪到这个中转数据结构里，这样所有计算代码都可以被挪到 statement 函数中，让 renderPlainText 只操作通过 data 参数传进来的数据。
 
 第一步是将顾客（customer）字段添加到中转对象里（编译、测试、提交）。
 
-```js
-function statement (invoice, plays) {
-  const statementData = {};
-  statementData.customer = invoice.customer;
-  return renderPlainText(statementData, invoice, plays);
-}
+```python
 
-function renderPlainText(data, invoice, plays) {
-  let result = `Statement for ${data.customer}\n`;
-  for (let perf of invoice.performances) {
-    result += ` ${playFor(perf).name}: ${usd(amountFor(perf))} (${perf.audience} seats)\n`;
-  }
-  result += `Amount owed is ${usd(totalAmount())}\n`;
-  result += `You earned ${totalVolumeCredits()} credits\n`;
-  return result;
+def statement(invoice, plays):
+    statement_data = {}
+    statement_data['customer'] = invoice['customer']
+    return render_plain_text(statement_data, invoice, plays)
+
+
+def render_plain_text(data, invoice, plays):
+    result = f'Statement for {data["customer"]}\n'
+
+    for perf in invoice['performances']:
+        result += f'  {play_for(perf)["name"]}: {usd(amount_for(perf))} ({perf["audience"]} seats)\n'
+
+    result += f'Amount owed is {usd(total_amount())}\n'
+    result += f'You earned {total_volume_credits()} credits\n'
+    return result
 ```
 
 我将 performances 字段也搬移过去，这样我就可以移除掉 renderPlainText 的 invoice 参数（编译、测试、提交）。
 
 #### 顶层作用域...
 
-```js
-function statement (invoice, plays) {
-  const statementData = {};
-  statementData.customer = invoice.customer;
-  statementData.performances = invoice.performances;
-  return renderPlainText(statementData,  invoice,  plays);
-}
+```python
 
-function renderPlainText(data, plays) {
-  let result = `Statement for ${data.customer}\n`;
-  for (let perf of data.performances) {
-    result += ` ${playFor(perf).name}: ${usd(amountFor(perf))} (${perf.audience} seats)\n`;
-  }
-  result += `Amount owed is ${usd(totalAmount())}\n`;
-  result += `You earned ${totalVolumeCredits()} credits\n`;
-  return result;
+def statement(invoice, plays):
+    statement_data = {}
+    statement_data['customer'] = invoice['customer']
+    statement_data['performances'] = invoice['performances']
+    return render_plain_text(statement_data, invoice, plays)
+
+
+def render_plain_text(data, invoice, plays):
+    result = f'Statement for {data["customer"]}\n'
+    for perf in data['performances']:
+        result += f'  {play_for(perf)["name"]}: {usd(amount_for(perf))} ({perf["audience"]} seats)\n'
+    result += f'Amount owed is {usd(total_amount())}\n'
+    result += f'You earned {total_volume_credits()} credits\n'
+    return result
+
 ```
 
 #### function renderPlainText...
 
-```js
-function totalAmount() {
-  let result = 0;
-  for (let perf of data.performances) {
-    result += amountFor(perf);
-  }
-  return result;
-}
-function totalVolumeCredits() {
-  let result = 0;
-  for (let perf of data.performances) {
-    result += volumeCreditsFor(perf);
-  }
-  return result;
-}
+```python
+
+    def total_volume_credits():
+        res = 0
+        for perf in data['performances']:
+            res += volume_credits_for(perf)
+        return res
+
+    def total_amount():
+        res = 0
+        for perf in data['performances']:
+            res += amount_for(perf)
+        return res
 ```
 
 现在，我希望“剧目名称”信息也从中转数据中获得。为此，需要使用 play 中的数据填充 aPerformance 对象（记得编译、测试、提交）。
 
-```js
-function statement (invoice, plays) {
-  const statementData = {};
-  statementData.customer = invoice.customer;
-  statementData.performances = invoice.performances.map(enrichPerformance);
-  return renderPlainText(statementData, plays);
+```python
 
-  function enrichPerformance(aPerformance) {
-    const result = Object.assign({}, aPerformance);
-    return result;
-}
+def statement(invoice, plays):
+
+    def enrich_performance(performance):
+        res = performance.copy()
+        res['play'] = play_for(performance)
+        res['amount'] = amount_for(performance)
+        res['volume_credits'] = volume_credits_for(performance)
+        return res
+
+    def render_plain_text(data, invoice, plays):
+
+        result = f'Statement for {data["customer"]}\n'
+
+        for perf in data['performances']:
+            result += f'  {play_for(perf)["name"]}: {usd(amount_for(perf))} ({perf["audience"]} seats)\n'
+
+        result += f'Amount owed is {usd(total_amount(data))}\n'
+        result += f'You earned {total_volume_credits(data)} credits\n'
+        return result
+
+    statement_data = {
+        'customer': invoice['customer'],
+        'performances': list(map(enrich_performance, invoice['performances']))
+    }
+
+    return render_plain_text(statement_data, invoice, plays)
+
 ```
 
 现在我只是简单地返回了一个 aPerformance 对象的副本，但马上我就会往这条记录中添加新的数据。返回副本的原因是，我不想修改传给函数的参数，我总是尽量保持数据不可变（immutable）——可变的状态会很快变成烫手的山芋。
@@ -1118,16 +1276,19 @@ function statement (invoice, plays) {
 
 #### function statement...
 
-```js
-function enrichPerformance(aPerformance) {
-  const result = Object.assign({}, aPerformance);
-  result.play = playFor(result);
-  return result;
-}
+```python
 
-function playFor(aPerformance) {
-  return plays[aPerformance.playID];
-}
+    def enrich_performance(performance):
+        res = performance.copy()
+        res['play'] = play_for(performance)
+        res['amount'] = amount_for(performance)
+        res['volume_credits'] = volume_credits_for(performance)
+        return res
+    
+    def play_for(performance):
+        """用以移除变量 `play` """
+        return plays[performance['playID']]
+
 ```
 
 然后替换 renderPlainText 中对 playFor 的所有引用点，让它们使用新数据（编译、测试、提交）。
@@ -1150,7 +1311,7 @@ function volumeCreditsFor(aPerformance) {
   return result;
 }
 
-functionamountFor(aPerformance){
+function amountFor(aPerformance){
   let result = 0;
   switch (aPerformance.play.type) {
   case "tragedy":
