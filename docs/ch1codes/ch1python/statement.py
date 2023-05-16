@@ -1,4 +1,6 @@
-from docs.ch1codes.ch1python.create_statement import usd, create_statement_data
+import locale
+
+from docs.ch1codes.ch1python.create_statement import create_statement_data
 
 
 def statement(invoice, plays):
@@ -32,3 +34,8 @@ def render_html(data):
         result += f'&lt;p&gt;You earned&lt;em&gt;{data["total_volume_credits"]}&lt;/em&gt;credits&lt;/p&gt;\n'
 
     return result
+
+
+def usd(number):
+    locale.setlocale(locale.LC_ALL, 'en_US')
+    return locale.currency(number / 100, grouping=True)
