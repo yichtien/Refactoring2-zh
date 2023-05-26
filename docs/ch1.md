@@ -1299,37 +1299,47 @@ def statement(invoice, plays):
 
 #### function statement...
 
-```js
-function enrichPerformance(aPerformance) {
-  const result = Object.assign({}, aPerformance);
-  result.play = playFor(result);
-  result.amount = amountFor(result);
-  return result;
-}
+```python
+    def enrich_performance(performance):
+        res = performance.copy()
+        res['play'] = play_for(performance)
+        res['amount'] = amount_for(performance)
+        res['volume_credits'] = volume_credits_for(performance)
+        return res
 
-function amountFor(aPerformance) {...}
+
+    def amount_for(performance) -> float:
+        if performance['play']['type'] == 'tragedy':
+            res = 40000
+            if performance['audience'] > 30:
+                res += 1000 * (performance['audience'] - 30)
+        elif performance['play']['type'] == 'comedy':
+            res = 30000
+            if performance['audience'] > 20:
+                res += 10000 + 500 * (performance['audience'] - 20)
+            res += 300 * performance['audience']
+        else:
+            raise RuntimeError(f'unknown type: {performance["play"]["type"]}')
+        return res
 ```
 
 #### function renderPlainText...
 
-```js
-let result = `Statement for ${data.customer}\n`;
-for (let perf of data.performances) {
-  result += ` ${perf.play.name}: ${usd(perf.amount)} (${
-    perf.audience
-  } seats)\n`;
-}
-result += `Amount owed is ${usd(totalAmount())}\n`;
-result += `You earned ${totalVolumeCredits()} credits\n`;
-return result;
+```python
+    result = f'Statement for {data["customer"]}\n'
 
-function totalAmount() {
-  let result = 0;
-  for (let perf of data.performances) {
-    result += perf.amount;
-  }
-  return result;
-}
+    for perf in data['performances']:
+        result += f'  {perf["play"]["name"]}: {usd(perf["amount"])} ({perf["audience"]} seats)\n'
+
+    result += f'Amount owed is {usd(data["total_amount"])}\n'
+    result += f'You earned {data["total_volume_credits"]} credits\n'
+    return result
+    
+def total_amount():
+    res = 0
+    for perf in data['performances']:
+        res += amount_for(perf)
+    return res
 ```
 
 接下来搬移观众量积分的计算（编译、测试、提交）。
@@ -1426,7 +1436,7 @@ def create_statement_data(invoice, plays):
 
 由于两个阶段已经彻底分离，我干脆把它搬移到另一个文件里去（并且修改了返回结果的变量名，与我一贯的编码风格保持一致）。
 
-#### statement.js...
+#### statement.py...
 
 ```python
 from docs.ch1codes.ch1python.create_statement import usd, create_statement_data
@@ -1503,7 +1513,7 @@ def create_statement_data(invoice, plays):
 
 最后再做一次编译、测试、提交，接下来，要编写一个 HTML 版本的对账单就很简单了。
 
-#### statement.js...
+#### statement.python...
 
 ```python
 
@@ -1536,7 +1546,7 @@ def usd(number):
 
 现在正是停下来重新回顾一下代码的好时机，思考一下重构的进展。现在我有了两个代码文件。
 
-statement.js
+statement.python
 
 ```python
 import locale
@@ -1662,7 +1672,7 @@ def create_statement_data(invoice, plays):
 
 我先从检查计算代码开始。（之前的重构带来的一大好处是，现在我大可以忽略那些格式化代码，只要不改变中转数据结构就行。我可以进一步添加测试来保证中转数据结构不会被意外修改。）
 
-#### createStatementData.js...
+#### createStatementData.py...
 
 ```python
 import math
@@ -1855,19 +1865,19 @@ class PerformanceCalculator:
 
 ```python
 
-  def amount(self) -> float:
-        if self.play['type'] == 'tragedy':
-            res = 40000
-            if self.performance['audience'] > 30:
-                res += 1000 * (self.performance['audience'] - 30)
-        elif self.play['type'] == 'comedy':
-            res = 30000
-            if self.performance['audience'] > 20:
-                res += 10000 + 500 * (self.performance['audience'] - 20)
-            res += 300 * self.performance['audience']
-        else:
-            raise RuntimeError(f'unknown type: {self.play["type"]}')
-        return res
+def amount(self) -> float:
+    if self.play['type'] == 'tragedy':
+        res = 40000
+        if self.performance['audience'] > 30:
+            res += 1000 * (self.performance['audience'] - 30)
+    elif self.play['type'] == 'comedy':
+        res = 30000
+        if self.performance['audience'] > 20:
+            res += 10000 + 500 * (self.performance['audience'] - 20)
+        res += 300 * self.performance['audience']
+    else:
+        raise RuntimeError(f'unknown type: {self.play["type"]}')
+    return res
 
 ```
 
@@ -1937,30 +1947,29 @@ def create_statement_data(invoice, plays):
 
 #### 顶层作用域...
 
-```js
-function createPerformanceCalculator(aPerformance, aPlay) {
-  return new PerformanceCalculator(aPerformance, aPlay);
-}
+```python
+def create_performance_calculator(performance, play):
+    return PerformanceCalculator(performance, play);
 ```
 
 改造成普通函数后，我就可以在里面创建演出计算器的子类，然后由创建函数决定返回哪一个子类的实例。
 
 #### 顶层作用域...
 
-```js
-function createPerformanceCalculator(aPerformance, aPlay) {
-  switch (aPlay.type) {
-    case "tragedy":
-      return new TragedyCalculator(aPerformance, aPlay);
-    case "comedy":
-      return new ComedyCalculator(aPerformance, aPlay);
-    default:
-      throw new Error(`unknown type: ${aPlay.type}`);
-  }
-}
+```python
 
-class TragedyCalculator extends PerformanceCalculator {}
-class ComedyCalculator extends PerformanceCalculator {}
+def create_performance_calculator(performance, play):
+    if play['type'] == 'tragedy':
+        return TragedyCalculator(performance, play)
+    elif play['type'] == 'comedy':
+        return ComedyCalculator(performance, play)
+    else:
+        raise Exception(f'unknown type {play["type"]}')
+
+class TragedyCalculator(PerformanceCalculator):
+    ...
+class ComedyCalculator(PerformanceCalculator):
+    ...
 ```
 
 准备好实现多态的类结构后，我就可以继续使用以多态取代条件表达式（272）手法了。
@@ -1969,38 +1978,34 @@ class ComedyCalculator extends PerformanceCalculator {}
 
 #### class TragedyCalculator...
 
-```js
-  get amount() {
-  let result = 40000;
-  if (this.performance.audience &gt; 30) {
-    result += 1000 * (this.performance.audience - 30);
-  }
-  return result;
-}
+```python
+
+    def amount(self) -> float:
+        res = 40000
+        if self.performance['audience'] > 30:
+            res += 1000 * (self.performance['audience'] - 30)
+        return res
+
 ```
 
 虽说子类有了这个方法已足以覆盖超类对应的条件分支，但要是你也和我一样偏执，你也许还想在超类的分支上抛一个异常。
 
 #### class PerformanceCalculator...
 
-```js
-  get amount() {
-  let result = 0;
-  switch (this.play.type) {
-    case "tragedy":
-      throw 'bad thing';
-    case "comedy":
-      result = 30000;
-      if (this.performance.audience &gt; 20) {
-        result += 10000 + 500 * (this.performance.audience - 20);
-      }
-      result += 300 * this.performance.audience;
-      break;
-    default:
-      throw new Error(`unknown type: ${this.play.type}`);
-  }
-  return result;
-}
+```python
+  
+def amount(self) -> float:
+    if self.play['type'] == 'tragedy':
+        raise 'bad thing'
+    elif self.play['type'] == 'comedy':
+        res = 30000
+        if self.performance['audience'] > 20:
+            res += 10000 + 500 * (self.performance['audience'] - 20)
+        res += 300 * self.performance['audience']
+    else:
+        raise RuntimeError(f'unknown type: {self.play["type"]}')
+    return res
+
 ```
 
 虽然我也可以直接删掉处理悲剧的分支，将错误留给默认分支去抛出，但我更喜欢显式地抛出异常——何况这行代码只能再活个几分钟了（这也是我直接抛出一个字符串而不用更好的错误对象的原因）。
@@ -2088,79 +2093,100 @@ class ComedyCalculator(PerformanceCalculator):
 
 又到了观摩代码的时刻，让我们来看看，为计算器引入多态会对代码库有什么影响。
 
-createStatementData.js
+createStatementData.py
 
-```js
-  export default function createStatementData(invoice, plays) {
-  const result = {};
-  result.customer = invoice.customer;
-  result.performances = invoice.performances.map(enrichPerformance);
-  result.totalAmount = totalAmount(result);
-  result.totalVolumeCredits = totalVolumeCredits(result);
-  return result;
+```python
+import math
+from functools import reduce
 
-  function enrichPerformance(aPerformance) {
-    const calculator = createPerformanceCalculator(aPerformance, playFor(aPerformance));
-    const result = Object.assign({}, aPerformance);
-    result.play = calculator.play;
-    result.amount = calculator.amount;
-    result.volumeCredits = calculator.volumeCredits;
-    return result;
-  }
-  function playFor(aPerformance) {
-    return plays[aPerformance.playID]
-  }
-  function totalAmount(data) {
-    return data.performances
-      .reduce((total, p) =&gt; total + p.amount, 0);
-  }
-  function totalVolumeCredits(data) {
-    return data.performances
-      .reduce((total, p) =&gt; total + p.volumeCredits, 0);
-  }
-}
-function createPerformanceCalculator(aPerformance, aPlay) {
-    switch(aPlay.type) {
-    case "tragedy": return new TragedyCalculator(aPerformance, aPlay);
-    case "comedy" : return new ComedyCalculator(aPerformance, aPlay);
-    default:
-        throw new Error(`unknown type: ${aPlay.type}`);
+def create_statement_data(invoice, plays):
+    def play_for(performance):
+        """用以移除变量 `play` """
+        return plays[performance['playID']]
+
+    def total_volume_credits(data):
+        res = reduce(lambda x, y: x + y['volume_credits'], data['performances'], 0)
+        return res
+
+    def total_amount(data):
+        res = reduce(lambda x, y: x + y['amount'], data['performances'], 0)
+        return res
+
+    def enrich_performance(performance):
+        res = performance.copy()
+        calculator = create_performance_calculator(res, play_for(res))
+        res['play'] = calculator.play
+        res['amount'] = calculator.amount
+        res['volume_credits'] = calculator.volume_credits
+        return res
+
+    statement_data = {
+        'customer': invoice['customer'],
+        'performances': list(map(enrich_performance, invoice['performances']))
     }
-}
-class PerformanceCalculator {
-  constructor(aPerformance, aPlay) {
-    this.performance = aPerformance;
-    this.play = aPlay;
-  }
-  get amount() {
-    throw new Error('subclass responsibility');
-  }
-  get volumeCredits() {
-    return Math.max(this.performance.audience - 30, 0);
-  }
-}
-class TragedyCalculator extends PerformanceCalculator {
-  get amount() {
-    let result = 40000;
-    if (this.performance.audience &gt; 30) {
-      result += 1000 * (this.performance.audience - 30);
-    }
-    return result;
-  }
-}
-class ComedyCalculator extends PerformanceCalculator {
-  get amount() {
-    let result = 30000;
-    if (this.performance.audience &gt; 20) {
-      result += 10000 + 500 * (this.performance.audience - 20);
-    }
-    result += 300 * this.performance.audience;
-    return result;
-  }
-  get volumeCredits() {
-    return super.volumeCredits + Math.floor(this.performance.audience / 5);
-  }
-}
+    statement_data['total_amount'] = total_amount(statement_data)
+    statement_data['total_volume_credits'] = total_volume_credits(statement_data)
+
+    return statement_data
+
+
+def create_performance_calculator(performance, play):
+    if play['type'] == 'tragedy':
+        return TragedyCalculator(performance, play)
+    elif play['type'] == 'comedy':
+        return ComedyCalculator(performance, play)
+    else:
+        raise Exception(f'unknown type {play["type"]}')
+
+class PerformanceCalculator:
+
+    def __init__(self, performance, play):
+        self._performance = performance
+        self._play = play
+
+    @property
+    def performance(self):
+        return self._performance
+
+    @property
+    def play(self):
+        return self._play
+
+    @property
+    def amount(self) -> float:
+        raise RuntimeError(f'subclass responsibility')
+
+    @property
+    def volume_credits(self):
+        res: int = max(self.performance['audience'] - 30, 0)
+        return res
+
+
+class TragedyCalculator(PerformanceCalculator):
+
+    @property
+    def amount(self) -> float:
+        res = 40000
+        if self.performance['audience'] > 30:
+            res += 1000 * (self.performance['audience'] - 30)
+        return res
+
+
+class ComedyCalculator(PerformanceCalculator):
+
+    @property
+    def amount(self) -> float:
+        res = 30000
+        if self.performance['audience'] > 20:
+            res += 10000 + 500 * (self.performance['audience'] - 20)
+        res += 300 * self.performance['audience']
+        return res
+
+    @property
+    def volume_credits(self):
+        return super().volume_credits + math.floor(self.performance['audience'] / 5)
+
+
 ```
 
 代码量仍然有所增加，因为我再次整理了代码结构。新结构带来的好处是，不同戏剧种类的计算各自集中到了一处地方。如果大多数修改都涉及特定类型的计算，像这样按类型进行分离就很有意义。当添加新剧种时，只需要添加一个子类，并在创建函数中返回它。
